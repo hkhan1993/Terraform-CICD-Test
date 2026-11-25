@@ -203,8 +203,3 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.app.arn
   }
 }
-
-output "alb_dns_name" {
-  description = "DNS endpoint for the Application Load Balancer"
-  value       = aws_lb.app.dns_name
-}
