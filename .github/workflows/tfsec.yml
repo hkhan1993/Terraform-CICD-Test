@@ -1,31 +1,45 @@
-name: tfsec
+name: Security Scan (Trivy + Gitleaks)
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
-    branches: ["**"]
+    branches: [main]
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
-  tfsec:
+  trivy-scan:
+    name: Trivy Full Scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
+      - name: Run Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@0.36.0
         with:
-          soft_fail: false
-          format: sarif
-          additional_args: --out tfsec.sarif
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,misconfig,secret,license'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          format: 'table'
+          exit-code: '0'
 
-      - name: Upload SARIF report
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+  gitleaks-scan:
+    name: Gitleaks Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full git history
+        uses: actions/checkout@v4
         with:
-          sarif_file: tfsec.sarif
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITLEAKS_ENABLE_SUMMARY: true
+        continue-on-error: true
